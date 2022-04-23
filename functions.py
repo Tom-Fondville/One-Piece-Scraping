@@ -38,12 +38,17 @@ def createFolder(chapNumber):
     logLabelText.set("Créartion du folder " + str(chapNumber))
     os.makedirs('images/chapter' + str(chapNumber), exist_ok=True)
 
-def saveImg(url,name,chapNumber):
+def saveImg(url,chapNumber,pageNumber):
     img_data = requests.get(url).content
     typeOfFyle = regexType.findall(url)[0]
     #print(typeOfFyle)
-    with open('images/chapter' + str(chapNumber) + '/' + str(name) +'.' + typeOfFyle, 'wb') as handler:
+    with open('images/chapter' + str(chapNumber) + '/img' + str(pageNumber) +'.' + typeOfFyle, 'wb') as handler:
         handler.write(img_data)
+    h,w = getDimentions(chapNumber,pageNumber)
+    if w == MesVariables.widthPDF:
+        MesVariables.ImageMappingList.append(InfoIMG(2,h,w))
+    else:
+        MesVariables.ImageMappingList.append(InfoIMG(1,h,w))
 
 def saveChapter(url,chapNumber):
     #url_chap = url + str(chapNumber) + '/'
@@ -58,7 +63,7 @@ def saveChapter(url,chapNumber):
         if os.path.exists('images/chapter' + str(chapNumber) + '/img' + str(i) +'.jpg') == False and os.path.exists('images/chapter' + str(chapNumber) + '/img' + str(i) +'.png') == False:
             print(str(i), end='', flush=True)
             logLabelText.set(str(i))
-            saveImg(links[i],'img' + str(i),chapNumber)
+            saveImg(links[i],chapNumber,i)
     print("\nDownloaded!")
     logLabelText.set("Downloaded!")
 
@@ -158,9 +163,24 @@ def saveAndPDF(url,firstChap,lastChap):
         logLabelText.set("Problème! Le dernier chapitre est inférieur au premier!")
         return ExecError()
     currChap = firstChap
+    #Le premier chap 
+    saveChapter(url,currChap)
+    height, width = getPdfDimentions(firstChap)
+    MesVariables.heightPDF = height
+    MesVariables.widthPDF = width
+    print("Largeur du PDF : " + str(MesVariables.widthPDF))
+    pdf = createPDF(width,height)
+    makeChapterInPDF(pdf,currChap)
+    currChap+= 1
+    #Les chap suivants
     while currChap <= lastChap:
         saveChapter(url,currChap)
+        makeChapterInPDF(pdf,currChap)
         currChap+= 1
-    makeNbChapterInPDF(firstChap,lastChap)
+    #makeNbChapterInPDF(firstChap,lastChap)
+    if int(firstChap) == int(lastChap):
+        endPDF(pdf,"One Piece Chapter " + str(firstChap))
+    else:    
+        endPDF(pdf,"One Piece Chapter " + str(firstChap) + "-" + str(lastChap))
 
 

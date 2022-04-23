@@ -22,17 +22,10 @@ url = 'https://onepiece-scan.com/manga/one-piece-scan-'
 #    print(p.findall(img))
 
 
-class InfoIMG:
-    def __init__(self, size, height, width):
-        self.size = size
-        self.height = height
-        self.width = width
-
-maliste = []
-a = InfoIMG(2,10,50)
-maliste.append(a)
-print(maliste[0].size)
-print(len(maliste))
-
-
-print(['cc','kk'])
+lst = ['cc','kk']
+print(lst[0])
+print(lst[1])
+try:
+    print(lst[2])
+except:
+    print("out")
