@@ -15,9 +15,8 @@ urlFrame.pack()
 urlLabel = Label(urlFrame, text="URL")
 urlLabel.pack()
 url_default = StringVar() 
-url_default.set("https://onepiece-scan.com/manga/one-piece-scan-")
+url_default.set("https://scanjujutsukaisen.com/manga/jujutsu-kaisen-scan-")
 url_textBox = Entry(urlFrame, textvariable=url_default, width=30)
-url_textBox.bind("<Button-1>",myFunction)
 url_textBox.pack(expand="yes")
 
 
@@ -61,9 +60,11 @@ def buttonFunction(event):
     print(str(last))
     logLabelText = StringVar()
     logLabelText.set("log")
+    functions.logLabelText = logLabelText
     logLabel = Label(window, textvariable=logLabelText, bg="black", fg="white", width=30)
     logLabel.pack()
-    functions.saveAndPDF(logLabelText,currentURL,first,last)
+    functions.MesVariables.rightOrLeft = 'right'
+    functions.saveAndPDF(currentURL,first,last)
     logLabel.destroy()
 bouton.bind("<Button-1>",buttonFunction)
 

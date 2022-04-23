@@ -1,4 +1,5 @@
 import re
+import links
 from shutil import ExecError
 from tkinter.messagebox import RETRY
 from turtle import st
@@ -11,37 +12,50 @@ import sys
 from tkinter import *
 #url = 'https://onepiece-scan.com/manga/one-piece-scan-'
 path ="PDF"
+logLabelText = ""
+regexType = re.compile(r'(?i)\.(jpg|png)')
 
-def getLinks(logLabelText,url):
+class InfoIMG:
+    def __init__(self, size, height, width):
+        self.size = size
+        self.height = height
+        self.width = width
+
+class MesVariables:
+    rightOrLeft = 'right'
+    heightPDF = ""
+    widthPDF = ""
+    ImageMappingList = [] #Si une image prend la page entirèe {valeur 2,height,width}, si elle prend une demie page {valeur 1,height,width}
+
+def getLinks(url, chapNumber):
     print("Récupération des liens")
     logLabelText.set("Récupération des liens")
-    response = requests.get(url)
-    if response.ok:
-        page = BeautifulSoup(response.text,features="html.parser") 
-        images = [img['src'] for img in page.find_all('img', { 'class' : 'wp-manga-chapter-img' })]
-    return images
+    return links.getLinksForChapter(url,chapNumber)
 
 
-def createFolder(logLabelText,chapNumber):
+def createFolder(chapNumber):
     print("Créartion du folder " + str(chapNumber))
     logLabelText.set("Créartion du folder " + str(chapNumber))
     os.makedirs('images/chapter' + str(chapNumber), exist_ok=True)
 
 def saveImg(url,name,chapNumber):
     img_data = requests.get(url).content
-    with open('images/chapter' + str(chapNumber) + '/' + str(name) +'.jpg', 'wb') as handler:
+    typeOfFyle = regexType.findall(url)[0]
+    #print(typeOfFyle)
+    with open('images/chapter' + str(chapNumber) + '/' + str(name) +'.' + typeOfFyle, 'wb') as handler:
         handler.write(img_data)
 
-def saveChapter(logLabelText,url,chapNumber):
-    url_chap = url + str(chapNumber) + '/'
-    print("Début :" +str(url_chap))
-    logLabelText.set("Début :" +str(url_chap))
-    links = getLinks(logLabelText,url_chap)
-    createFolder(logLabelText,chapNumber)
+def saveChapter(url,chapNumber):
+    #url_chap = url + str(chapNumber) + '/'
+    #print("Début :" +str(url_chap))
+    print("Début :" +str(url) + " chapter " + str(chapNumber))
+    logLabelText.set("Début :" +str(url))
+    links = getLinks(url, chapNumber)
+    createFolder(chapNumber)
     print("downloading...")
     logLabelText.set("downloading...")
     for i in range(len(links)):
-        if os.path.exists('images/chapter' + str(chapNumber) + '/img' + str(i) +'.jpg') == False:
+        if os.path.exists('images/chapter' + str(chapNumber) + '/img' + str(i) +'.jpg') == False and os.path.exists('images/chapter' + str(chapNumber) + '/img' + str(i) +'.png') == False:
             print(str(i), end='', flush=True)
             logLabelText.set(str(i))
             saveImg(links[i],'img' + str(i),chapNumber)
@@ -49,8 +63,23 @@ def saveChapter(logLabelText,url,chapNumber):
     logLabelText.set("Downloaded!")
 
 def getDimentions(chapNumber,pageNumber):
-    imageInfo = cv2.imread('images/chapter'+ str(chapNumber) +'/img'+ str(pageNumber) +'.jpg')
+    if os.path.exists('images/chapter' + str(chapNumber) + '/img' + str(pageNumber) +'.jpg'):
+        imageInfo = cv2.imread('images/chapter'+ str(chapNumber) +'/img'+ str(pageNumber) +'.jpg')
+    else:
+        imageInfo = cv2.imread('images/chapter'+ str(chapNumber) +'/img'+ str(pageNumber) +'.png')
     return imageInfo.shape[:2]
+
+def getPdfDimentions(chapNumber):
+    hMax = 0
+    wMax = 0
+    for i in range(countNumberPage(chapNumber)):
+        h,w = getDimentions(chapNumber,i)
+        if w > wMax:
+            wMax = w
+        if h > hMax:
+            hMax = h
+    return hMax,wMax
+
 
 def countNumberPage(chapNumber):
     initial_count = 0
@@ -58,53 +87,80 @@ def countNumberPage(chapNumber):
     for path in os.listdir(dir):
         if os.path.isfile(os.path.join(dir, path)):
             initial_count += 1
-    print(initial_count)
+    #print(initial_count)
     return initial_count
 
-def createPDF(logLabelText,width,height):
+def createPDF(width,height):
     print("Création du PDF")
     logLabelText.set("Création du PDF")
-    return FPDF(format=(width,height))
+    return FPDF(orientation='P',format=(width,height))
 
-def endPDF(logLabelText,pdf,name):
+def endPDF(pdf,name):
     print("Fin du PDF")
     logLabelText.set("Fin du PDF")
     pdf.output(path + "/" + str(name) + '.pdf', 'F')
 
-def addPage(pdf,chapNumber,pageNumber,width,height):
-    #height, width = getDimentions(chapNumber,pageNumber)
-    pdf.add_page()
-    pdf.image('images/chapter'+ str(chapNumber) +'/img'+ str(pageNumber) +'.jpg', x = 0, y = 0, w = width, h = height, type = 'JPG', link = '')
+def addPage(pdf,chapNumber,pageNumber):
+    height, width = getDimentions(chapNumber,pageNumber)
+    print("largeur img :" + str(width))
+    print("hauteur img :" + str(height))
+    if width == int(MesVariables.widthPDF):
+        #print("new page number " + str(pageNumber))
+        #pdf.add_page()
+        addImage(pdf,chapNumber,pageNumber,height,width,0,0,'true')
+    else:
+        print("work in progress")
+        if MesVariables.rightOrLeft == 'right':
+            #print("new page number " + str(pageNumber))
+            #pdf.add_page()
+            addImage(pdf,chapNumber,pageNumber,height,width,MesVariables.widthPDF/2,0,'true')
+            MesVariables.rightOrLeft = 'left'
+        else:
+            addImage(pdf,chapNumber,pageNumber,height,width,0,0,'false')
+            MesVariables.rightOrLeft = 'right'
+    print()
 
-def makeChapterInPDF(logLabelText,pdf,chapNumber):
+def addImage(pdf,chapNumber,pageNumber,height,width,x,y,newPageBool):
+    if newPageBool == 'true':
+        print("new page number " + str(pageNumber))
+        pdf.add_page()
+    if os.path.exists('images/chapter' + str(chapNumber) + '/img' + str(pageNumber) +'.jpg'):
+        pdf.image('images/chapter'+ str(chapNumber) +'/img'+ str(pageNumber) +'.jpg', x = x, y = y, w = width, h = height, type = 'JPG', link = '')
+    else:
+        pdf.image('images/chapter'+ str(chapNumber) +'/img'+ str(pageNumber) +'.png', x = x, y = y, w = width, h = height, type = 'PNG', link = '')
+
+def makeChapterInPDF(pdf,chapNumber):
     print("Ajout du chapitre " + str(chapNumber) + " au pdf")
     logLabelText.set("Ajout du chapitre " + str(chapNumber) + " au pdf")
-    height, width = getDimentions(chapNumber,2)
     for i in range(countNumberPage(chapNumber)):
-        addPage(pdf,chapNumber,i,width,height)
+        addPage(pdf,chapNumber,i)
 
-def makeNbChapterInPDF(logLabelText,firstChap,lastChap):
+def makeNbChapterInPDF(firstChap,lastChap):
     if lastChap<firstChap:
         return ExecError()
-    height, width = getDimentions(firstChap,2)
-    pdf = createPDF(logLabelText,width,height)
+    height, width = getPdfDimentions(firstChap)
+    MesVariables.heightPDF = height
+    MesVariables.widthPDF = width
+    print("Largeur du PDF : " + str(MesVariables.widthPDF))
+    pdf = createPDF(width,height)
+    
     currChap = firstChap
     while currChap <= lastChap:
-        makeChapterInPDF(logLabelText,pdf,currChap)
+        makeChapterInPDF(pdf,currChap)
         currChap+= 1
     if int(firstChap) == int(lastChap):
-        endPDF(logLabelText,pdf,"One Piece Chapter " + str(firstChap))
+        endPDF(pdf,"One Piece Chapter " + str(firstChap))
     else:    
-        endPDF(logLabelText,pdf,"One Piece Chapter " + str(firstChap) + "-" + str(lastChap))
+        endPDF(pdf,"One Piece Chapter " + str(firstChap) + "-" + str(lastChap))
 
-def saveAndPDF(logLabelText,url,firstChap,lastChap):
+def saveAndPDF(url,firstChap,lastChap):
     if lastChap<firstChap:
         logLabelText.set("Problème! Le dernier chapitre est inférieur au premier!")
         return ExecError()
     currChap = firstChap
     while currChap <= lastChap:
-        saveChapter(logLabelText,url,currChap)
+        saveChapter(url,currChap)
         currChap+= 1
-    makeNbChapterInPDF(logLabelText,firstChap,lastChap)
+    makeNbChapterInPDF(firstChap,lastChap)
 
 
