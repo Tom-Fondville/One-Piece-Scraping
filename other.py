@@ -20,12 +20,62 @@ url = 'https://onepiece-scan.com/manga/one-piece-scan-'
 #liens = links.getLinksForChapter('https://scanjujutsukaisen.com/manga/jujutsu-kaisen-scan-',2)
 #for img in liens:
 #    print(p.findall(img))
+class InfoIMG:
+    def __init__(self, size, name):
+        self.size = size
+        self.name = name
 
+images = [InfoIMG(1,'IMG1'),InfoIMG(2,'IMG2'),InfoIMG(1,'IMG3'),InfoIMG(1,'IMG4'),InfoIMG(1,'IMG5')]
 
-lst = ['cc','kk']
-print(lst[0])
-print(lst[1])
-try:
-    print(lst[2])
-except:
-    print("out")
+nbPages = 0
+valuePage= 0
+
+pagesIntegration = []
+index = len(images)-1
+while index >= 0:
+    if index == 0:
+        valuePage += images[index].size
+
+        if valuePage == 1:
+            pagesIntegration.append(['solo',images[index]])
+        if valuePage == 2:
+            pagesIntegration.append(['full',images[index]])
+    else:
+        valuePage += images[index].size
+        valuePage += images[index-1].size
+
+        if valuePage == 2:
+            pagesIntegration.append(['split',images[index],images[index-1]])
+        elif valuePage == 3:
+            if images[index].size == 1:
+                pagesIntegration.append(['solo',images[index]])
+                pagesIntegration.append(['full',images[index-1]])
+            else:
+                pagesIntegration.append(['full',images[index]])
+                print("La valeur de la page :" + str(valuePage))
+                index -=1
+                valuePage = 0
+                continue
+        elif valuePage == 4:
+            pagesIntegration.append(['full',images[index]])
+            pagesIntegration.append(['full',images[index-1]])
+    index -= 2
+    print("La valeur de la page :" + str(valuePage))
+    
+    if valuePage > 2:
+        nbPages = nbPages + 2
+    else:
+        nbPages = nbPages + 1
+
+    valuePage = 0
+
+print("Nb pages:" +str(len(pagesIntegration)))
+pagesIntegration.reverse()
+for page in range(len(pagesIntegration)):
+    print("La page " + str(page) + " contient: [",end="")
+    if pagesIntegration[page][0] == 'solo':
+        print(pagesIntegration[page][1].name + ",]")
+    elif pagesIntegration[page][0] == 'full':
+        print(pagesIntegration[page][1].name + "]")
+    elif pagesIntegration[page][0] == 'split':
+        print(pagesIntegration[page][1].name + "," + pagesIntegration[page][2].name + "]")

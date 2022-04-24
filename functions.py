@@ -29,7 +29,7 @@ class MesVariables:
 
 def getLinks(url, chapNumber):
     print("Récupération des liens")
-    logLabelText.set("Récupération des liens")
+    #logLabelText.set("Récupération des liens")
     return links.getLinksForChapter(url,chapNumber)
 
 
@@ -39,16 +39,13 @@ def createFolder(chapNumber):
     os.makedirs('images/chapter' + str(chapNumber), exist_ok=True)
 
 def saveImg(url,chapNumber,pageNumber):
-    img_data = requests.get(url).content
-    typeOfFyle = regexType.findall(url)[0]
-    #print(typeOfFyle)
-    with open('images/chapter' + str(chapNumber) + '/img' + str(pageNumber) +'.' + typeOfFyle, 'wb') as handler:
-        handler.write(img_data)
-    h,w = getDimentions(chapNumber,pageNumber)
-    if w == MesVariables.widthPDF:
-        MesVariables.ImageMappingList.append(InfoIMG(2,h,w))
-    else:
-        MesVariables.ImageMappingList.append(InfoIMG(1,h,w))
+    if os.path.exists('images/chapter' + str(chapNumber) + '/img' + str(pageNumber) +'.jpg') == False and os.path.exists('images/chapter' + str(chapNumber) + '/img' + str(pageNumber) +'.png') == False:
+        print(str(pageNumber), end='', flush=True)
+        logLabelText.set(str(pageNumber))
+        img_data = requests.get(url).content
+        typeOfFyle = regexType.findall(url)[0]
+        with open('images/chapter' + str(chapNumber) + '/img' + str(pageNumber) +'.' + typeOfFyle, 'wb') as handler:
+            handler.write(img_data)
 
 def saveChapter(url,chapNumber):
     #url_chap = url + str(chapNumber) + '/'
@@ -60,10 +57,7 @@ def saveChapter(url,chapNumber):
     print("downloading...")
     logLabelText.set("downloading...")
     for i in range(len(links)):
-        if os.path.exists('images/chapter' + str(chapNumber) + '/img' + str(i) +'.jpg') == False and os.path.exists('images/chapter' + str(chapNumber) + '/img' + str(i) +'.png') == False:
-            print(str(i), end='', flush=True)
-            logLabelText.set(str(i))
-            saveImg(links[i],chapNumber,i)
+        saveImg(links[i],chapNumber,i)
     print("\nDownloaded!")
     logLabelText.set("Downloaded!")
 
@@ -95,6 +89,18 @@ def countNumberPage(chapNumber):
     #print(initial_count)
     return initial_count
 
+def makeChapterMapping(chapNumber):
+    for i in range(countNumberPage(chapNumber)):
+        h,w = getDimentions(chapNumber,i)
+        print("Pour l'image" + str(i) + " " + str(w) + " size", end='')
+        if w >= MesVariables.widthPDF - 200 and w <= MesVariables.widthPDF + 200:
+            MesVariables.ImageMappingList.append(InfoIMG(2,h,w))
+            print(2)
+        else:
+            MesVariables.ImageMappingList.append(InfoIMG(1,h,w))
+            print(1)
+    
+
 def createPDF(width,height):
     print("Création du PDF")
     logLabelText.set("Création du PDF")
@@ -109,15 +115,14 @@ def addPage(pdf,chapNumber,pageNumber):
     height, width = getDimentions(chapNumber,pageNumber)
     print("largeur img :" + str(width))
     print("hauteur img :" + str(height))
-    if width == int(MesVariables.widthPDF):
-        #print("new page number " + str(pageNumber))
-        #pdf.add_page()
+    print(MesVariables.ImageMappingList[pageNumber].size)
+    if MesVariables.ImageMappingList[pageNumber].size == 2:
+        print("img Large")
         addImage(pdf,chapNumber,pageNumber,height,width,0,0,'true')
+        MesVariables.rightOrLeft = 'right'
     else:
-        print("work in progress")
+        print("img fine")
         if MesVariables.rightOrLeft == 'right':
-            #print("new page number " + str(pageNumber))
-            #pdf.add_page()
             addImage(pdf,chapNumber,pageNumber,height,width,MesVariables.widthPDF/2,0,'true')
             MesVariables.rightOrLeft = 'left'
         else:
@@ -137,6 +142,7 @@ def addImage(pdf,chapNumber,pageNumber,height,width,x,y,newPageBool):
 def makeChapterInPDF(pdf,chapNumber):
     print("Ajout du chapitre " + str(chapNumber) + " au pdf")
     logLabelText.set("Ajout du chapitre " + str(chapNumber) + " au pdf")
+    makeChapterMapping(chapNumber)
     for i in range(countNumberPage(chapNumber)):
         addPage(pdf,chapNumber,i)
 

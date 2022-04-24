@@ -1,6 +1,8 @@
+import re
 import requests
 from bs4 import BeautifulSoup
 import functions
+regexType = re.compile(r'(?i)\.(jpg|png)')
 def getLinksForChapter(url, chapNumber):
     if url == 'https://onepiece-scan.com/manga/one-piece-scan-':
         url_chap = url + str(chapNumber) + '/'
@@ -19,10 +21,17 @@ def getLinksForChapter(url, chapNumber):
         if response.ok:
             page = BeautifulSoup(response.text,features="html.parser") 
             images = [img['src'] for img in page.find_all('img', { 'class' : 'wp-manga-chapter-img' })]
-            images.pop(len(images)-1)
+            #images.pop(len(images)-1)
         print('les liens:')
+        intrus = []
+        for img in range(len(images)):
+            result = regexType.findall(images[img])
+            if len(result) == 0:
+                intrus.append(img)
+        for i in intrus:
+            images.pop(i)
         for img in images:
-            print(img) 
+            print(img)
         return images
     else:
         print("URL non prise en charge")
