@@ -42,3 +42,13 @@ def getLinksForChapter(url, chapNumber):
 def saveDim(w,h):
     functions.widthPDF = w
     functions.heightPDF = h
+
+def printMapping(pagesIntegration):
+    for page in range(len(pagesIntegration)):
+        print("La page " + str(page) + " contient: [",end="")
+        if pagesIntegration[page][0] == 'solo':
+            print(str(pagesIntegration[page][1].imgNumber) + ",]")
+        elif pagesIntegration[page][0] == 'full':
+            print(str(pagesIntegration[page][1].imgNumber) + "]")
+        elif pagesIntegration[page][0] == 'split':
+            print(str(pagesIntegration[page][1].imgNumber) + "," + str(pagesIntegration[page][2].imgNumber) + "]")

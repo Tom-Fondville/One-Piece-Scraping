@@ -10,6 +10,10 @@ def myFunction(event):
 window = Tk()
 window.title("Online Scan to PDF")
 
+name_default = StringVar()
+name_default.set("Manga Name")
+name_textBox = Entry(window, textvariable=name_default, width=30)
+name_textBox.pack()
 urlFrame = Frame(window, borderwidth=0, relief=GROOVE)
 urlFrame.pack()
 urlLabel = Label(urlFrame, text="URL")
@@ -54,6 +58,8 @@ outFolderButton.bind("<Button-1>",outFolderButtonFunction)
 def buttonFunction(event):
     currentURL = str(url_textBox.get())
     print(currentURL)
+    currentName = name_textBox.get()
+    print(currentName)
     first = int(firstChapter.get())
     print(str(first))
     last = int(lastChapter.get())
@@ -64,7 +70,7 @@ def buttonFunction(event):
     logLabel = Label(window, textvariable=logLabelText, bg="black", fg="white", width=30)
     logLabel.pack()
     functions.MesVariables.rightOrLeft = 'right'
-    functions.saveAndPDF(currentURL,first,last)
+    functions.saveAndPDF(currentURL,currentName,first,last)
     logLabel.destroy()
 bouton.bind("<Button-1>",buttonFunction)
 
